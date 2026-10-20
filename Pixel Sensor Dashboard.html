@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Hardware Sensor Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyan: {
+                            400: '#22d3ee',
+                            500: '#06b6d4',
+                            900: '#164e63',
+                        },
+                        dark: {
+                            bg: '#0a0f1d',
+                            card: '#111827',
+                            border: '#1f2937'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons for visual styling -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom Glowing & 3D Visual Effects */
+        body {
+            background-color: #0a0f1d;
+            color: #f3f4f6;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        .glow-border {
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.15);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+        }
+
+        .glow-text {
+            text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+        }
+
+        /* 3D Box for Device Orientation */
+        .scene {
+            perspective: 600px;
+        }
+
+        .cube {
+            width: 100px;
+            height: 140px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+        }
+
+        .cube-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #06b6d4;
+            background: rgba(6, 182, 212, 0.15);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #22d3ee;
+            backdrop-filter: blur(4px);
+        }
+
+        .cube-face-front { transform: translateZ(20px); }
+        .cube-face-back  { transform: rotateY(180deg) translateZ(20px); }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0f1d;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-4 sm:p-6 md:p-8">
+
+    <!-- Header Section -->
+    <header class="max-w-7xl w-full mx-auto mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-gray-800 pb-5">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-white flex items-center gap-3">
+                <i class="fa-solid fa-microchip text-cyan-400"></i>
+                Pixel Sensor Dashboard
+            </h1>
+            <p class="text-sm text-gray-400 mt-1">Real-time hardware telemetry via Modern Web APIs</p>
+        </div>
+        
+        <button id="btn-start" onclick="initSensors()" class="px-6 py-3 bg-cyan-500 hover:bg-cyan-400 text-gray-950 font-bold rounded-xl transition-all shadow-lg hover:shadow-cyan-500/50 flex items-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-power-off"></i>
+            <span>Start Monitoring</span>
+        </button>
+    </header>
+
+    <!-- Main Grid Dashboard -->
+    <main class="max-w-7xl w-full mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-grow">
+
+        <!-- 1. Accelerometer (With Gravity) -->
+        <div class="bg-dark-card rounded-2xl p-5 glow-border flex flex-col justify-between">
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-bold text-lg text-white flex items-center gap-2">
+                        <i class="fa-solid fa-arrows-up-down-left-right text-cyan-400"></i>
+                        Accelerometer
+                    </h2>
+                    <span id="badge-accel" class="text-xs px-2.5 py-1 rounded-full bg-gray-800 text-gray-400">Standby</span>
+                </div>
+                <div class="space-y-4">
+                    <!-- X Axis -->
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-400">X-Axis</span>
+                            <span id="val-accel-x" class="font-mono text-cyan-400 font-semibold">0.00 m/s²</span>
+                        </div>
+                        <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
+                            <div id="bar-accel-x" class="bg-cyan-400 h-full w-1/2 transition-all duration-75"></div>
+                        </div>
+                    </div>
+                    <!-- Y Axis -->
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-400">Y-Axis</span>
+                            <span id="val-accel-y" class="font-mono text-cyan-400 font-semibold">0.00 m/s²</span>
+                        </div>
+                        <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
+                            <div id="bar-accel-y" class="bg-cyan-400 h-full w-1/2 transition-all duration-75"></div>
+                        </div>
+                    </div>
+                    <!-- Z Axis -->
+                    <div>
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-400">Z-Axis</span>
+                            <span id="val-accel-z" class="font-mono text-cyan-400 font-semibold">0.00 m/s²</span>
+                        </div>
+                        <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
+                            <div id="bar-accel-z" class="bg-cyan-400 h-full w-1/2 transition-all duration-75"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p id="warn-accel" class="text-xs text-amber-400/80 mt-4 hidden">
+                <i class="fa-solid fa-triangle-exclamation"></i> Accelerometer API not accessible.
+            </p>
+        </div>
+
+        <!-- 2. Device Orientation / Gyroscope -->
+        <div class="bg-dark-card rounded-2xl p-5 glow-border flex flex-col justify-between">
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-bold text-lg text-white flex items-center gap-2">
+                        <i class="fa-solid fa-compass text-cyan-400"></i>
+                        Orientation / Gyro
+                    </h2>
+                    <span id="badge-orient" class="text-xs px-2.5 py-1 rounded-full bg-gray-800 text-gray-400">Standby</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <!-- Text Values -->
+                    <div class="space-y-2 text-sm">
+                        <div>
+                            <span class="text-gray-400 block text-xs">Alpha (Z-Yaw)</span>
+                            <span id="val-alpha" class="font-mono text-cyan-400 font-bold text-base">0°</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400 block text-xs">Beta (X-Pitch)</span>
+                            <span id="val-beta" class="font-mono text-cyan-400 font-bold text-base">0°</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400 block text-xs">Gamma (Y-Roll)</span>
+                            <span id="val-gamma" class="font-mono text-cyan-400 font-bold text-base">0°</span>
+                        </div>
+                    </div>
+                    <!-- 3D Rotation Indicator Box -->
+                    <div class="scene flex items-center justify-center p-4">
+                        <div id="cube" class="cube">
+                            <div class="cube-face cube-face-front">FRONT</div>
+                            <div class="cube-face cube-face-back">BACK</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p id="warn-orient" class="text-xs text-amber-400/80 mt-4 hidden">
+                <i class="fa-solid fa-triangle-exclamation"></i> DeviceOrientation API not supported.
+            </p>
+        </div>
+
+        <!-- 3. Linear Acceleration (Without Gravity) -->
+        <div class="bg-dark-card rounded-2xl p-5 glow-border flex flex-col justify-between">
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-bold text-lg text-white flex items-center gap-2">
+                        <i class="fa-solid fa-gauge-high text-cyan-400"></i>
+                        Linear Motion
+                    </h2>
+                    <span id="badge-linear" class="text-xs px-2.5 py-1 rounded-full bg-gray-800 text-gray-400">Standby</span>
+                </div>
+                <p class="text-xs text-gray-400 mb-4">Measures pure movement forces excluding Earth's gravity.</p>
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="bg-gray-800/50 p-3 rounded-xl border border-gray-700/50">
+                        <span class="text-xs text-gray-400 block mb-1">X-Lin</span>
+                        <span id="val-lin-x" class="font-mono text-cyan-400 font-bold text-sm">0.0</span>
+                        <span class="text-[10px] text-gray-500 block">m/s²</span>
+                    </div>
+                    <div class="bg-gray-800/50 p-3 rounded-xl border border-gray-700/50">
+                        <span class="text-xs text-gray-400 block mb-1">Y-Lin</span>
+                        <span id="val-lin-y" class="font-mono text-cyan-400 font-bold text-sm">0.0</span>
+                        <span class="text-[10px] text-gray-500 block">m/s²</span>
+                    </div>
+                    <div class="bg-gray-800/50 p-3 rounded-xl border border-gray-700/50">
+                        <span class="text-xs text-gray-400 block mb-1">Z-Lin</span>
+                        <span id="val-lin-z" class="font-mono text-cyan-400 font-bold text-sm">0.0</span>
+                        <span class="text-[10px] text-gray-500 block">m/s²</span>
+                    </div>
+                </div>
+            </div>
+            <p id="warn-linear" class="text-xs text-amber-400/80 mt-4 hidden">
+                <i class="fa-solid fa-triangle-exclamation"></i> Linear Acceleration API not supported.
+            </p>
+        </div>
+
+        <!-- 4. Ambient Light Sensor -->
+        <div class="bg-dark-card rounded-2xl p-5 glow-border flex flex-col justify-between">
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-bold text-lg text-white flex items-center gap-2">
+                        <i class="fa-solid fa-sun text-cyan-400"></i>
+                        Ambient Light
+                    </h2>
+                    <span id="badge-light" class="text-xs px-2.5 py-1 rounded-full bg-gray-800 text-gray-400">Standby</span>
+                </div>
+                <div class="flex items-center gap-4 my-2">
+                    <div id="icon-light" class="w-16 h-16 rounded-2xl bg-gray-800 flex items-center justify-center text-2xl text-cyan-400 transition-all">
+                        <i class="fa-solid fa-lightbulb"></i>
+                    </div>
+                    <div>
+                        <div id="val-light" class="text-3xl font-mono font-bold text-white glow-text">--</div>
+                        <span class="text-xs text-gray-400">Illuminance (Lux)</span>
+                    </div>
+                </div>
+            </div>
+            <p id="warn-light" class="text-xs text-amber-400/80 mt-4">
+                <i class="fa-solid fa-info-circle"></i> Requires Chrome flag enablement or device support.
+            </p>
+        </div>
+
+        <!-- 5. Geolocation / Position -->
+        <div class="bg-dark-card rounded-2xl p-5 glow-border flex flex-col justify-between">
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-bold text-lg text-white flex items-center gap-2">
+                        <i class="fa-solid fa-location-crosshairs text-cyan-400"></i>
+                        GPS Geolocation
+                    </h2>
+                    <span id="badge-geo" class="text-xs px-2.5 py-1 rounded-full bg-gray-800 text-gray-400">Standby</span>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between border-b border-gray-800 pb-1">
+                        <span class="text-gray-400">Latitude</span>
+                        <span id="val-lat" class="font-mono text-cyan-400">--</span>
+                    </div>
+                    <div class="flex justify-between border-b border-gray-800 pb-1">
+                        <span class="text-gray-400">Longitude</span>
+                        <span id="val-lng" class="font-mono text-cyan-400">--</span>
+                    </div>
+                    <div class="flex justify-between border-b border-gray-800 pb-1">
+                        <span class="text-gray-400">Altitude</span>
+                        <span id="val-alt" class="font-mono text-cyan-400">--</span>
+                    </div>
+                    <div class="flex justify-between border-b border-gray-800 pb-1">
+                        <span class="text-gray-400">Speed</span>
+                        <span id="val-speed" class="font-mono text-cyan-400">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Accuracy</span>
+                        <span id="val-accuracy" class="font-mono text-cyan-400">--</span>
+                    </div>
+                </div>
+            </div>
+            <p id="warn-geo" class="text-xs text-amber-400/80 mt-4 hidden">
+                <i class="fa-solid fa-triangle-exclamation"></i> Location permissions denied or unavailable.
+            </p>
+        </div>
+
+        <!-- 6. Battery Status API -->
+        <div class="bg-dark-card rounded-2xl p-5 glow-border flex flex-col justify-between">
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="font-bold text-lg text-white flex items-center gap-2">
+                        <i class="fa-solid fa-battery-three-quarters text-cyan-400"></i>
+                        Battery Telemetry
+                    </h2>
+                    <span id="badge-battery" class="text-xs px-2.5 py-1 rounded-full bg-gray-800 text-gray-400">Standby</span>
+                </div>
+                <div class="flex items-center gap-4 my-2">
+                    <div class="relative flex items-center justify-center">
+                        <svg class="w-16 h-16 transform -rotate-90">
+                            <circle cx="32" cy="32" r="26" stroke="#1f2937" stroke-width="6" fill="transparent" />
+                            <circle id="circle-battery" cx="32" cy="32" r="26" stroke="#06b6d4" stroke-width="6" 
+                                    stroke-dasharray="163.3" stroke-dashoffset="163.3" fill="transparent" 
+                                    class="transition-all duration-500" />
+                        </svg>
+                        <span id="val-battery-pct" class="absolute text-xs font-bold font-mono text-white">--%</span>
+                    </div>
+                    <div class="space-y-1">
+                        <div id="val-battery-status" class="text-sm font-semibold text-white">Status: --</div>
+                        <div id="val-battery-time" class="text-xs text-gray-400">Time remaining: --</div>
+                    </div>
+                </div>
+            </div>
+            <p id="warn-battery" class="text-xs text-amber-400/80 mt-4 hidden">
+                <i class="fa-solid fa-triangle-exclamation"></i> Battery Status API not supported.
+            </p>
+        </div>
+
+    </main>
+
+    <!-- Footer Status Banner -->
+    <footer class="max-w-7xl w-full mx-auto mt-8 pt-4 border-t border-gray-800 text-center text-xs text-gray-500 flex flex-col sm:flex-row justify-between items-center gap-2">
+        <p>Google Pixel Hardware Telemetry Web Application</p>
+        <p id="system-status">System state: Ready for connection</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Global State & Tracking
+        let isMonitoring = false;
+
+        // Utility function to set status badges
+        function updateBadge(id, text, isConnected) {
+            const badge = document.getElementById(id);
+            if (!badge) return;
+            badge.innerText = text;
+            if (isConnected) {
+                badge.className = "text-xs px-2.5 py-1 rounded-full bg-cyan-900/60 text-cyan-400 border border-cyan-500/30";
+            } else {
+                badge.className = "text-xs px-2.5 py-1 rounded-full bg-red-950/60 text-red-400 border border-red-500/30";
+            }
+        }
+
+        // Initialize All Sensor Listeners
+        async function initSensors() {
+            const btn = document.getElementById('btn-start');
+            if (isMonitoring) {
+                location.reload(); // Simple reset
+                return;
+            }
+
+            isMonitoring = true;
+            btn.innerHTML = `<i class="fa-solid fa-arrows-rotate animate-spin"></i> Monitoring Active`;
+            btn.className = "px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/40 font-bold rounded-xl transition-all shadow-lg flex items-center gap-2 cursor-pointer";
+            document.getElementById('system-status').innerText = "System state: Sensor feeds active";
+
+            // Request iOS/Safari Sensor Permissions if needed
+            if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                try {
+                    const response = await DeviceMotionEvent.requestPermission();
+                    if (response !== 'granted') {
+                        console.warn('Motion sensor permissions rejected');
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            // 1 & 3. Motion & Accelerometer (DeviceMotionEvent)
+            if ('DeviceMotionEvent' in window) {
+                window.addEventListener('devicemotion', (event) => {
+                    // Accelerometer including gravity
+                    if (event.accelerationIncludingGravity) {
+                        const acc = event.accelerationIncludingGravity;
+                        const x = acc.x || 0;
+                        const y = acc.y || 0;
+                        const z = acc.z || 0;
+
+                        document.getElementById('val-accel-x').innerText = `${x.toFixed(2)} m/s²`;
+                        document.getElementById('val-accel-y').innerText = `${y.toFixed(2)} m/s²`;
+                        document.getElementById('val-accel-z').innerText = `${z.toFixed(2)} m/s²`;
+
+                        // Visual progress bars (Normalized to +/- 10 m/s²)
+                        document.getElementById('bar-accel-x').style.width = `${Math.min(Math.max((x + 10) * 5, 0), 100)}%`;
+                        document.getElementById('bar-accel-y').style.width = `${Math.min(Math.max((y + 10) * 5, 0), 100)}%`;
+                        document.getElementById('bar-accel-z').style.width = `${Math.min(Math.max((z + 10) * 5, 0), 100)}%`;
+
+                        updateBadge('badge-accel', 'Active', true);
+                    }
+
+                    // Linear Acceleration (excluding gravity)
+                    if (event.acceleration) {
+                        const lin = event.acceleration;
+                        document.getElementById('val-lin-x').innerText = (lin.x || 0).toFixed(2);
+                        document.getElementById('val-lin-y').innerText = (lin.y || 0).toFixed(2);
+                        document.getElementById('val-lin-z').innerText = (lin.z || 0).toFixed(2);
+                        updateBadge('badge-linear', 'Active', true);
+                    }
+                });
+            } else {
+                document.getElementById('warn-accel').classList.remove('hidden');
+                document.getElementById('warn-linear').classList.remove('hidden');
+                updateBadge('badge-accel', 'Unsupported', false);
+                updateBadge('badge-linear', 'Unsupported', false);
+            }
+
+            // 2. Gyroscope / Device Orientation
+            if ('DeviceOrientationEvent' in window) {
+                window.addEventListener('deviceorientation', (event) => {
+                    const alpha = event.alpha || 0; // Yaw
+                    const beta = event.beta || 0;   // Pitch
+                    const gamma = event.gamma || 0; // Roll
+
+                    document.getElementById('val-alpha').innerText = `${alpha.toFixed(1)}°`;
+                    document.getElementById('val-beta').innerText = `${beta.toFixed(1)}°`;
+                    document.getElementById('val-gamma').innerText = `${gamma.toFixed(1)}°`;
+
+                    // Update 3D Cube Rotation
+                    const cube = document.getElementById('cube');
+                    if (cube) {
+                        cube.style.transform = `rotateX(${beta}deg) rotateY(${gamma}deg) rotateZ(${alpha}deg)`;
+                    }
+
+                    updateBadge('badge-orient', 'Active', true);
+                });
+            } else {
+                document.getElementById('warn-orient').classList.remove('hidden');
+                updateBadge('badge-orient', 'Unsupported', false);
+            }
+
+            // 4. Ambient Light Sensor API (Generic Sensor API)
+            if ('AmbientLightSensor' in window) {
+                try {
+                    const sensor = new AmbientLightSensor();
+                    sensor.addEventListener('reading', () => {
+                        const lux = sensor.illuminance;
+                        document.getElementById('val-light').innerText = Math.round(lux);
+                        
+                        // Dynamic glow visualizer
+                        const lightIcon = document.getElementById('icon-light');
+                        const opacity = Math.min(lux / 1000, 1);
+                        lightIcon.style.boxShadow = `0 0 ${20 * opacity}px rgba(34, 211, 238, ${opacity})`;
+                    });
+                    sensor.addEventListener('error', (event) => {
+                        document.getElementById('warn-light').innerText = `Sensor Error: ${event.error.name}`;
+                        updateBadge('badge-light', 'Error', false);
+                    });
+                    sensor.start();
+                    updateBadge('badge-light', 'Active', true);
+                } catch (err) {
+                    document.getElementById('warn-light').innerText = 'Ambient Light Sensor restricted or unsupported.';
+                    updateBadge('badge-light', 'Disabled', false);
+                }
+            } else {
+                document.getElementById('warn-light').innerText = 'Generic Ambient Light API not enabled in browser flags.';
+                updateBadge('badge-light', 'Unsupported', false);
+            }
+
+            // 5. Geolocation API
+            if ('geolocation' in navigator) {
+                navigator.geolocation.watchPosition(
+                    (position) => {
+                        const coords = position.coords;
+                        document.getElementById('val-lat').innerText = coords.latitude.toFixed(5);
+                        document.getElementById('val-lng').innerText = coords.longitude.toFixed(5);
+                        document.getElementById('val-alt').innerText = coords.altitude ? `${coords.altitude.toFixed(1)} m` : 'N/A';
+                        document.getElementById('val-speed').innerText = coords.speed ? `${(coords.speed * 3.6).toFixed(1)} km/h` : '0 km/h';
+                        document.getElementById('val-accuracy').innerText = `±${coords.accuracy.toFixed(1)} m`;
+
+                        updateBadge('badge-geo', 'Active', true);
+                    },
+                    (error) => {
+                        document.getElementById('warn-geo').classList.remove('hidden');
+                        document.getElementById('warn-geo').innerText = `GPS Error: ${error.message}`;
+                        updateBadge('badge-geo', 'Denied', false);
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            } else {
+                document.getElementById('warn-geo').classList.remove('hidden');
+                updateBadge('badge-geo', 'Unsupported', false);
+            }
+
+            // 6. Battery Status API
+            if ('getBattery' in navigator) {
+                navigator.getBattery().then((battery) => {
+                    function updateBatteryInfo() {
+                        const level = Math.round(battery.level * 100);
+                        document.getElementById('val-battery-pct').innerText = `${level}%`;
+                        
+                        // Circle Progress Bar Update
+                        const circle = document.getElementById('circle-battery');
+                        const circumference = 2 * Math.PI * 26; // r=26 -> ~163.3
+                        const offset = circumference - (level / 100) * circumference;
+                        circle.style.strokeDashoffset = offset;
+
+                        document.getElementById('val-battery-status').innerText = battery.charging ? "Status: Charging ⚡" : "Status: On Battery";
+                        
+                        if (battery.charging) {
+                            document.getElementById('val-battery-time').innerText = "Plugged in";
+                        } else {
+                            const hours = Math.floor(battery.dischargingTime / 3600);
+                            const minutes = Math.floor((battery.dischargingTime % 3600) / 60);
+                            document.getElementById('val-battery-time').innerText = isFinite(battery.dischargingTime) 
+                                ? `Time left: ${hours}h ${minutes}m` 
+                                : "Calculating remaining time...";
+                        }
+                    }
+
+                    updateBatteryInfo();
+                    battery.addEventListener('levelchange', updateBatteryInfo);
+                    battery.addEventListener('chargingchange', updateBatteryInfo);
+                    updateBadge('badge-battery', 'Active', true);
+                });
+            } else {
+                document.getElementById('warn-battery').classList.remove('hidden');
+                updateBadge('badge-battery', 'Unsupported', false);
+            }
+        }
+    </script>
+</body>
+</html>
